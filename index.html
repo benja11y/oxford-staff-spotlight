@@ -8,14 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Warm Neutrals & Slate (Consistent with previous version) -->
     <!-- Application Structure Plan: The application is a linear, slide-based presentation. The key change is a hierarchical agenda sidebar. Related slides are grouped under parent headings (e.g., 'What is DA?', 'Why it Matters'), which are clickable to expand/collapse. This makes the overall structure clearer and navigation more intuitive for the presenter. -->
     <!-- Visualization & Content Choices: Individual slide content and interactions remain the same. The change is focused on the Information Architecture of the navigation/agenda component to improve usability during a live presentation. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background-color: #FDFBF7;
             color: #3d4758;
             display: flex;
@@ -77,10 +77,18 @@
             background-color: white;
             border: 1px solid #e2e8f0;
             border-radius: 0.75rem;
-            padding: 2rem;
-            margin-top: 1rem;
+            padding: 1.5rem;
             width: 100%;
             cursor: pointer;
+            height: 20rem; /* 320px */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            text-align: left;
+        }
+        .myth-card h3 {
+            text-align: center;
+            margin-bottom: 1rem;
         }
         .myth-card .rebuttal {
             display: none;
@@ -283,24 +291,24 @@
             </div>
             
             <div class="slide" data-title="The Myths" data-parent="Myth Busting">
-                <div class="w-full max-w-6xl grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                <div class="w-full max-w-6xl flex flex-wrap justify-center gap-6">
+                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                         <h3 class="text-xl font-semibold text-slate-700">Myth: Too expensive/time-consuming.</h3>
                         <p class="rebuttal text-lg">Truth: Fixing issues late is far more expensive. Building accessibility in from the start ('shifting left') is efficient and cost-effective.</p>
                     </div>
-                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                         <h3 class="text-xl font-semibold text-slate-700">Myth: Only benefits a very small number of people.</h3>
                         <p class="rebuttal text-lg">Truth: It benefits many, including those with temporary (e.g., broken arm) and situational (e.g., noisy environment) limitations. Plus, good accessibility improves usability for ALL users.</p>
                     </div>
-                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                         <h3 class="text-xl font-semibold text-slate-700">Myth: It makes things look ugly / stifles creativity.</h3>
                         <p class="rebuttal text-lg">Truth: This is false. Inclusive design can be beautiful, modern, and innovative. Accessibility and great design are not mutually exclusive.</p>
                     </div>
-                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                         <h3 class="text-xl font-semibold text-slate-700">Myth: Automated tools catch all accessibility issues.</h3>
                         <p class="rebuttal text-lg">Truth: Automated tools are helpful (catching ~30-40% of issues) but cannot replace manual testing by experts and, crucially, testing with users with disabilities.</p>
                     </div>
-                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                         <h3 class="text-xl font-semibold text-slate-700">Myth: We don't have any disabled users.</h3>
                         <p class="rebuttal text-lg">Truth: You almost certainly do, as many disabilities are not visible or disclosed. Proactive accessibility ensures you're prepared for everyone.</p>
                     </div>
@@ -313,17 +321,14 @@
             </div>
             <div class="slide" data-title="History" data-parent="Accessibility @ Oxford">
                 <h3 class="text-3xl font-bold text-slate-700 mb-6">History & Foundations</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to provide key historical milestones and acknowledgements.</em>)</p>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Past initiatives...</li><li>Establishment of support services...</li><li>Early guidelines...</li></ul>
+                <p class="text-xl text-gray-600 max-w-3xl">The University of Oxford has long been committed to supporting its community. Early efforts were foundational, establishing key support services and laying the groundwork for a more structured approach to digital inclusion. These initial steps were crucial in building the momentum we see today.</p>
             </div>
             <div class="slide" data-title="Current" data-parent="Accessibility @ Oxford">
                 <h3 class="text-3xl font-bold text-slate-700 mb-6">Current Initiatives</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to detail ongoing work.</em>)</p>
                 <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Central resources & training.</li><li>Procurement policy work.</li><li>Champions network.</li><li>Consultancy and support.</li></ul>
             </div>
             <div class="slide" data-title="Future" data-parent="Accessibility @ Oxford">
                 <h3 class="text-3xl font-bold text-slate-700 mb-6">Future Vision</h3>
-                 <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to outline strategic goals.</em>)</p>
                 <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Accessibility as a core standard.</li><li>Empowering staff and students.</li><li>Continuous improvement.</li><li>Fostering inclusive design culture.</li></ul>
             </div>
 
@@ -492,6 +497,7 @@
                 nextBtn.disabled = index === slides.length - 1;
                 prevBtn.style.opacity = index === 0 ? 0.5 : 1;
                 nextBtn.style.opacity = index === slides.length - 1 ? 0.5 : 1;
+                document.title = `Slide ${index + 1} of ${slides.length} - Digital Accessibility @ Oxford`;
                 slideCounter.textContent = `Slide ${index + 1} of ${slides.length}`;
                 updateAgendaActiveState();
                 if (slides[index].querySelector('#effortChart')) {
