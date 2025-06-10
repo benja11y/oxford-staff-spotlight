@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation: Digital Accessibility at Oxford</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Slate (Consistent with previous version) -->
+    <!-- Application Structure Plan: The application is a linear, slide-based presentation. The key change is a hierarchical agenda sidebar. Related slides are grouped under parent headings (e.g., 'What is DA?', 'Why it Matters'), which are clickable to expand/collapse. This makes the overall structure clearer and navigation more intuitive for the presenter. -->
+    <!-- Visualization & Content Choices: Individual slide content and interactions remain the same. The change is focused on the Information Architecture of the navigation/agenda component to improve usability during a live presentation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7;
+            color: #3d4758;
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        *:focus-visible {
+            outline: 3px solid #002147;
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+        #agenda {
+            background-color: #F0EBE5;
+            color: #4A5568;
+        }
+        .agenda-parent-title {
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .agenda-parent-title.active-parent {
+            color: #002147;
+        }
+        .agenda-child-list {
+            display: none;
+            padding-left: 1rem;
+        }
+        .agenda-child-list.expanded {
+            display: block;
+        }
+        .agenda-item.active {
+            background-color: #002147;
+            color: white;
+            font-weight: 500;
+        }
+        .slide {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 4rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .slide.active {
+            display: flex;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        .myth-card {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-top: 1rem;
+            width: 100%;
+            cursor: pointer;
+        }
+        .myth-card .rebuttal {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #cbd5e0;
+            color: #2D7A79;
+        }
+        .icon::before { font-size: 2em; margin-bottom: 0.5rem; display: inline-block; }
+        .icon-permanent::before { content: '♿'; }
+        .icon-temporary::before { content: '🩹'; }
+        .icon-situational::before { content: '🎧'; }
+        .icon-moral::before { content: '💖'; }
+        .icon-social::before { content: '👥'; }
+        .icon-pr::before { content: '🌟'; }
+        .icon-legal::before { content: '⚖️'; }
+        .icon-innovation::before { content: '💡'; }
+        .icon-ux::before { content: '👍'; }
+        
+        .btn-nav { background-color: #4A5568; color: white; }
+        .btn-nav:hover { background-color: #2D3748; }
+        .btn-action { background-color: #A36D20; color: white; }
+        .btn-action:hover { background-color: #8C5B1A; }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader {
+            border: 4px solid rgba(0, 0, 0, .1);
+            border-left-color: #002147;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #002147;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #002147;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="aria-announcer" class="sr-only" aria-live="assertive"></div>
+
+    <aside id="agenda" class="w-1/5 h-full p-4 space-y-2 overflow-y-auto">
+        <h2 class="text-lg font-bold mb-4">Agenda</h2>
+        <!-- Agenda will be populated by JS -->
+    </aside>
+
+    <main id="presentation-area" class="w-4/5 h-full relative">
+        <div id="slide-container" class="h-full">
+            <!-- Slides with new data-parent attribute -->
+            <div class="slide active" data-title="Title">
+                <div class="absolute top-6 left-6 flex items-center text-sm text-gray-600 bg-white/70 p-2 rounded-lg z-10">
+                    <label for="arrowNavToggle" class="mr-3 font-medium cursor-pointer">Arrow Key Navigation</label>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="arrowNavToggle" id="arrowNavToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="arrowNavToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <h1 class="text-5xl font-bold text-slate-800">Digital Accessibility @ Oxford</h1>
+                <p class="mt-4 text-2xl text-gray-700">Staff Spotlight Presentation</p>
+                <p class="mt-2 text-lg text-gray-600">Ben Tillyer - Head of Digital Accessibility (UX Centre of Excellence)</p>
+            </div>
+
+            <div class="slide" data-title="About Me">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">About Me</h2>
+                <p class="text-xl text-gray-600 max-w-3xl">A passionate advocate for building an inclusive and accessible digital world for everyone.</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside space-y-3">
+                    <li>Currently leading the digital accessibility strategy at the University of Oxford.</li>
+                    <li>Focused on embedding accessibility into the university's culture—moving from reactive fixes to proactive, inclusive design.</li>
+                    <li>Strong believer in the "Shift Left" principle: making accessibility a core part of the process from the very beginning.</li>
+                    <li>Committed to providing staff and students with the tools and knowledge they need to succeed in creating an accessible digital campus.</li>
+                </ul>
+            </div>
+
+            <div class="slide" data-title="Intro" data-parent="What is DA?">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">What is Digital Accessibility?</h2>
+                <p class="text-xl text-gray-600 max-w-3xl">Ensuring that digital tools and resources are designed and developed so that people with disabilities can perceive, understand, navigate, and interact with them, as well as contribute.</p>
+                <p class="mt-4 text-lg text-gray-500">It's about inclusivity and providing equal access and opportunity.</p>
+            </div>
+            <div class="slide" data-title="Permanent" data-parent="What is DA?">
+                <h2 class="text-3xl font-bold text-slate-700 mb-6">Permanent Limitations</h2>
+                <div class="icon icon-permanent mb-4"></div>
+                <p class="text-xl text-gray-600 max-w-3xl">Addressing lifelong disabilities. These are often what first come to mind with accessibility.</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                    <li>Blindness (requiring screen readers)</li>
+                    <li>Deafness (requiring captions)</li>
+                    <li>Motor impairments (requiring keyboard or switch access)</li>
+                </ul>
+            </div>
+            <div class="slide" data-title="Temporary" data-parent="What is DA?">
+                <h2 class="text-3xl font-bold text-slate-700 mb-6">Temporary Limitations</h2>
+                <div class="icon icon-temporary mb-4"></div>
+                <p class="text-xl text-gray-600 max-w-3xl">Short-term impairments that can affect anyone.</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                    <li>Broken arm (relying on one-handed operation or voice)</li>
+                    <li>Ear infection (needing captions temporarily)</li>
+                    <li>Recovering from eye surgery (needing high contrast/magnification)</li>
+                </ul>
+            </div>
+            <div class="slide" data-title="Situational" data-parent="What is DA?">
+                <h2 class="text-3xl font-bold text-slate-700 mb-6">Situational Limitations</h2>
+                 <div class="icon icon-situational mb-4"></div>
+                <p class="text-xl text-gray-600 max-w-3xl">Circumstances that create barriers based on environment or context.</p>
+                 <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                    <li>Noisy environment (unable to hear audio)</li>
+                    <li>Bright sunlight (screen difficult to see)</li>
+                    <li>Holding a baby (one-handed device use)</li>
+                </ul>
+                 <p class="mt-6 text-xl font-semibold text-slate-700">Designing for these benefits EVERYONE!</p>
+            </div>
+            
+            <div class="slide" data-title="Intro" data-parent="Why it Matters">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">Why Does Accessibility Matter?</h2>
+                <p class="text-xl text-gray-600">It's fundamental to the University of Oxford's mission and values.</p>
+            </div>
+            <div class="slide" data-title="Moral Case" data-parent="Why it Matters">
+                 <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-moral inline-block mr-2"></span>Moral Case</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">It's simply the right thing to do, ensuring fairness and equal opportunity for all members of our community.</p>
+            </div>
+            <div class="slide" data-title="Social Case" data-parent="Why it Matters">
+                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-social inline-block mr-2"></span>Social Case</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">Fosters a diverse and inclusive environment, allowing full participation in university life for everyone.</p>
+            </div>
+            <div class="slide" data-title="PR & Brand" data-parent="Why it Matters">
+                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-pr inline-block mr-2"></span>PR & Brand</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">Reinforces Oxford's image as a leading, forward-thinking institution. This is a positive side-effect of doing the right thing, not the primary driver.</p>
+            </div>
+            <div class="slide" data-title="Legal" data-parent="Why it Matters">
+                 <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-legal inline-block mr-2"></span>Legal Requirements</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">Adherence to standards like the Equality Act 2010 and Public Sector Bodies Accessibility Regulations (PSBAR) 2018.</p>
+            </div>
+             <div class="slide" data-title="Innovation" data-parent="Why it Matters">
+                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-innovation inline-block mr-2"></span>Innovation Driver</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">Constraints breed creativity. Designing for accessibility often leads to innovative solutions benefiting all users (e.g., curb cuts, voice controls).</p>
+            </div>
+            <div class="slide" data-title="Better UX" data-parent="Why it Matters">
+                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-ux inline-block mr-2"></span>Better User Experience</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">Good accessibility IS good UX. It results in clearer, more intuitive, and more robust digital services for everyone.</p>
+            </div>
+
+            <div class="slide" data-title="Digital Accessibility & Support">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">Digital Accessibility & Support Systems</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mb-8">Digital accessibility is the proactive foundation, complementing other essential supports.</p>
+                <div class="w-full max-w-3xl p-6 bg-white rounded-lg shadow-lg mb-8">
+                    <div class="border-b-4 border-slate-700 pb-3 mb-3">
+                        <h4 class="text-2xl font-semibold text-slate-700">1. Digital Accessibility (Built-in)</h4>
+                        <p class="text-md text-gray-600">This means ensuring things work for everyone from the start, like making a site navigable with just a keyboard. It's the digital equivalent of building ramps into a physical space.</p>
+                    </div>
+                    <div class="border-b-4 border-sky-500 pb-3 mb-3">
+                        <h4 class="text-2xl font-semibold text-sky-600">2. Assistive Technology (AT) (User Tools)</h4>
+                        <p class="text-md text-gray-600">Specialised tools (like screen readers or voice input) that users bring, or the University provides. These rely on good digital accessibility to function correctly.</p>
+                    </div>
+                    <div class="border-b-4 border-amber-500 pb-3">
+                        <h4 class="text-2xl font-semibold text-amber-600">3. Reasonable Adjustments / Support</h4>
+                        <p class="text-md text-gray-600">Individualised, often reactive, supports such as providing specific document formats or human assistance when needed.</p>
+                    </div>
+                </div>
+                <div class="w-full max-w-3xl grid md:grid-cols-2 gap-6 text-left">
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="font-semibold text-slate-800">→ Assistive Technology works best with accessible content.</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="font-semibold text-slate-800">→ Accessible content reduces the need for reasonable adjustments and increases independence.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide" data-title="Reactive to Proactive">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">Moving from Reactive to Proactive</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mb-4">The "Shift Left" Principle: Embedding accessibility from the very start of any project or content creation.</p>
+                <div class="chart-container bg-white p-4 rounded-lg shadow-md"><canvas id="effortChart"></canvas></div>
+                <div class="mt-4 flex justify-center items-center space-x-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="reactiveCheckbox" class="h-5 w-5 rounded text-slate-700 focus:ring-slate-500" checked>
+                        <label for="reactiveCheckbox" class="ml-2 text-gray-700">Reactive Effort</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="proactiveCheckbox" class="h-5 w-5 rounded text-amber-600 focus:ring-amber-500" checked>
+                        <label for="proactiveCheckbox" class="ml-2 text-gray-700">Proactive Effort</label>
+                    </div>
+                </div>
+            </div>
+             <div class="slide" data-title="Benefits of Proactive">
+                <h2 class="text-3xl font-bold text-slate-700 mb-6">Benefits of Being Proactive</h2>
+                <ul class="text-left max-w-2xl text-xl text-gray-700 list-disc list-inside space-y-3">
+                    <li>More cost-effective in the long run (retrofitting is expensive!)</li><li>Better, more robust user experiences for everyone</li><li>Reduced legal and reputational risk</li><li>Fosters a genuinely inclusive culture</li><li>Less retrofitting and duplicated effort</li>
+                </ul>
+            </div>
+
+            <div class="slide" data-title="Intro" data-parent="Myth Busting">
+                 <h2 class="text-4xl font-bold text-slate-700 mb-6">Myths About Accessibility</h2>
+                 <p class="text-xl text-gray-600">Let's bust some common misconceptions.</p>
+            </div>
+            
+            <div class="slide" data-title="The Myths" data-parent="Myth Busting">
+                <div class="w-full max-w-6xl grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                        <h3 class="text-xl font-semibold text-slate-700">Myth: Too expensive/time-consuming.</h3>
+                        <p class="rebuttal text-lg">Truth: Fixing issues late is far more expensive. Building accessibility in from the start ('shifting left') is efficient and cost-effective.</p>
+                    </div>
+                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                        <h3 class="text-xl font-semibold text-slate-700">Myth: Only benefits a very small number of people.</h3>
+                        <p class="rebuttal text-lg">Truth: It benefits many, including those with temporary (e.g., broken arm) and situational (e.g., noisy environment) limitations. Plus, good accessibility improves usability for ALL users.</p>
+                    </div>
+                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                        <h3 class="text-xl font-semibold text-slate-700">Myth: It makes things look ugly / stifles creativity.</h3>
+                        <p class="rebuttal text-lg">Truth: This is false. Inclusive design can be beautiful, modern, and innovative. Accessibility and great design are not mutually exclusive.</p>
+                    </div>
+                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                        <h3 class="text-xl font-semibold text-slate-700">Myth: Automated tools catch all accessibility issues.</h3>
+                        <p class="rebuttal text-lg">Truth: Automated tools are helpful (catching ~30-40% of issues) but cannot replace manual testing by experts and, crucially, testing with users with disabilities.</p>
+                    </div>
+                    <div class="myth-card shadow-xl" role="button" tabindex="0" aria-expanded="false">
+                        <h3 class="text-xl font-semibold text-slate-700">Myth: We don't have any disabled users.</h3>
+                        <p class="rebuttal text-lg">Truth: You almost certainly do, as many disabilities are not visible or disclosed. Proactive accessibility ensures you're prepared for everyone.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide" data-title="Intro" data-parent="Accessibility @ Oxford">
+                <h2 class="text-4xl font-bold text-slate-700 mb-6">Accessibility @ Oxford IT Services</h2>
+                 <p class="text-xl text-gray-600 max-w-3xl">Our journey and commitment to a digitally inclusive university.</p>
+            </div>
+            <div class="slide" data-title="History" data-parent="Accessibility @ Oxford">
+                <h3 class="text-3xl font-bold text-slate-700 mb-6">History & Foundations</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to provide key historical milestones and acknowledgements.</em>)</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Past initiatives...</li><li>Establishment of support services...</li><li>Early guidelines...</li></ul>
+            </div>
+            <div class="slide" data-title="Current" data-parent="Accessibility @ Oxford">
+                <h3 class="text-3xl font-bold text-slate-700 mb-6">Current Initiatives</h3>
+                <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to detail ongoing work.</em>)</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Central resources & training.</li><li>Procurement policy work.</li><li>Champions network.</li><li>Consultancy and support.</li></ul>
+            </div>
+            <div class="slide" data-title="Future" data-parent="Accessibility @ Oxford">
+                <h3 class="text-3xl font-bold text-slate-700 mb-6">Future Vision</h3>
+                 <p class="text-xl text-gray-600 max-w-3xl">(<em>Presenter to outline strategic goals.</em>)</p>
+                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Accessibility as a core standard.</li><li>Empowering staff and students.</li><li>Continuous improvement.</li><li>Fostering inclusive design culture.</li></ul>
+            </div>
+
+            <div class="slide" data-title="Call to Action">
+                <h2 class="text-4xl font-bold text-slate-700 mb-8">Let's Make Oxford Accessible Together</h2>
+                <div class="grid md:grid-cols-2 gap-6 max-w-4xl">
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">Key Takeaways</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Accessibility benefits everyone.</li><li>Proactive design is essential & efficient.</li><li>It's a shared responsibility.</li></ul></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">How You Can Help</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Attend training, use our resources.</li><li>Consider accessibility in your projects.</li><li>Become an accessibility champion.</li><li>Ask questions, provide feedback.</li></ul></div>
+                </div>
+                 <p class="mt-10 text-lg text-gray-600">Visit: [University Accessibility Portal Link] <br/> Contact: [Your Email/Department Email]</p>
+            </div>
+            
+            <div class="slide" data-title="Ask Ben 🤓" data-parent="Q&A">
+                 <h2 class="text-4xl font-bold text-slate-700">Ask Ben 🤓</h2><p class="mt-6 text-2xl text-gray-600">Thank you!</p>
+            </div>
+
+            <div class="slide" data-title="Ask Gemini ✨" data-parent="Q&A">
+                <h2 class="text-4xl font-bold text-slate-700 mb-4">Ask Gemini ✨</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mb-6">Have a question about accessibility? Ask our AI assistant, powered by Gemini, for a live explanation.</p>
+                <div class="w-full max-w-xl">
+                    <div class="flex gap-2">
+                        <input type="text" id="geminiQuery" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., What is ARIA?">
+                        <button id="askGeminiBtn" class="btn-action font-bold py-2 px-6 rounded-lg whitespace-nowrap">Ask Gemini</button>
+                    </div>
+                    <div id="geminiResponseContainer" class="mt-6 text-left bg-white p-6 rounded-lg shadow-inner min-h-[150px]">
+                        <div id="geminiLoader" class="hidden mx-auto loader"></div>
+                        <p id="geminiResponse" class="text-gray-700"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 flex justify-between p-4 bg-opacity-50 bg-gray-100">
+            <button id="prevBtn" class="btn-nav py-2 px-5 rounded-lg">Previous</button>
+            <div id="slide-counter" class="text-slate-700 self-center"></div>
+            <button id="nextBtn" class="btn-nav py-2 px-5 rounded-lg">Next</button>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = Array.from(document.querySelectorAll('#slide-container .slide'));
+            const agendaContainer = document.getElementById('agenda');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const slideCounter = document.getElementById('slide-counter');
+            let currentSlideIndex = 0;
+            let effortChartInstance = null;
+            let isArrowNavEnabled = true;
+
+            function setupInteractiveCards() {
+                const mythCards = document.querySelectorAll('.myth-card');
+                mythCards.forEach(mythCard => {
+                    const toggleRebuttal = () => {
+                        const rebuttal = mythCard.querySelector('.rebuttal');
+                        const isExpanded = mythCard.getAttribute('aria-expanded') === 'true';
+                        rebuttal.style.display = isExpanded ? 'none' : 'block';
+                        mythCard.setAttribute('aria-expanded', !isExpanded);
+                    };
+
+                    mythCard.addEventListener('click', toggleRebuttal);
+                    mythCard.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggleRebuttal();
+                        }
+                    });
+                });
+            }
+
+            function populateAgenda() {
+                agendaContainer.innerHTML = '<h2 class="text-lg font-bold mb-4">Agenda</h2>';
+                const agendaGroups = {};
+
+                slides.forEach((slide, index) => {
+                    const parentTitle = slide.dataset.parent;
+                    if (parentTitle) {
+                        if (!agendaGroups[parentTitle]) {
+                            agendaGroups[parentTitle] = [];
+                        }
+                        agendaGroups[parentTitle].push({ slide, index });
+                    } else {
+                        agendaGroups[slide.dataset.title] = [{ slide, index }];
+                    }
+                });
+
+                for (const groupTitle in agendaGroups) {
+                    const items = agendaGroups[groupTitle];
+                    const parentDiv = document.createElement('div');
+                    parentDiv.classList.add('agenda-parent-item', 'mb-2');
+                    
+                    const titleDiv = document.createElement('div');
+                    titleDiv.textContent = groupTitle;
+                    titleDiv.classList.add('agenda-parent-title', 'p-2', 'rounded-md', 'text-sm');
+                    parentDiv.appendChild(titleDiv);
+                    
+                    if (items.length > 1 || items[0].slide.dataset.parent) {
+                        const childList = document.createElement('ul');
+                        childList.classList.add('agenda-child-list', 'mt-1');
+                        
+                        titleDiv.addEventListener('click', () => {
+                            childList.classList.toggle('expanded');
+                        });
+
+                        items.forEach(item => {
+                            const childItem = document.createElement('li');
+                            childItem.textContent = item.slide.dataset.title;
+                            childItem.classList.add('agenda-item', 'agenda-child-item', 'p-2', 'rounded', 'cursor-pointer', 'hover:bg-slate-200', 'text-xs');
+                            childItem.addEventListener('click', () => showSlide(item.index));
+                            childList.appendChild(childItem);
+                        });
+                        parentDiv.appendChild(childList);
+                    } else {
+                        titleDiv.addEventListener('click', () => showSlide(items[0].index));
+                        titleDiv.classList.add('agenda-item');
+                    }
+                    agendaContainer.appendChild(parentDiv);
+                }
+            }
+
+            function updateAgendaActiveState() {
+                document.querySelectorAll('.agenda-item, .agenda-parent-title').forEach(el => {
+                    el.classList.remove('active', 'active-parent');
+                });
+                document.querySelectorAll('.agenda-child-list').forEach(el => {
+                    el.classList.remove('expanded');
+                });
+
+                const activeSlide = slides[currentSlideIndex];
+                const activeSlideTitle = activeSlide.dataset.title;
+                const activeSlideParent = activeSlide.dataset.parent;
+
+                if (activeSlideParent) {
+                    const allChildItems = Array.from(document.querySelectorAll('.agenda-child-item'));
+                    const targetItem = allChildItems.find(item => {
+                        const itemParentGroup = item.closest('.agenda-parent-item');
+                        if (!itemParentGroup) return false;
+                        const itemParentTitle = itemParentGroup.querySelector('.agenda-parent-title').textContent;
+                        return item.textContent === activeSlideTitle && itemParentTitle === activeSlideParent;
+                    });
+
+                    if (targetItem) {
+                        targetItem.classList.add('active');
+                        const childList = targetItem.closest('.agenda-child-list');
+                        if (childList) {
+                            childList.classList.add('expanded');
+                            childList.previousElementSibling.classList.add('active-parent');
+                        }
+                    }
+                } else {
+                    const allTopLevelItems = Array.from(document.querySelectorAll('.agenda-parent-title.agenda-item'));
+                    const targetItem = allTopLevelItems.find(item => item.textContent === activeSlideTitle);
+                    
+                    if (targetItem) {
+                        targetItem.classList.add('active');
+                    }
+                }
+            }
+            
+            function showSlide(index) {
+                if (index < 0 || index >= slides.length) return;
+                slides.forEach(s => s.classList.remove('active'));
+                slides[index].classList.add('active');
+                currentSlideIndex = index;
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === slides.length - 1;
+                prevBtn.style.opacity = index === 0 ? 0.5 : 1;
+                nextBtn.style.opacity = index === slides.length - 1 ? 0.5 : 1;
+                slideCounter.textContent = `Slide ${index + 1} of ${slides.length}`;
+                updateAgendaActiveState();
+                if (slides[index].querySelector('#effortChart')) {
+                    renderEffortChart();
+                }
+            }
+
+            function renderEffortChart() {
+                const chartCanvas = document.getElementById('effortChart');
+                if (!chartCanvas) return;
+                if (effortChartInstance) { effortChartInstance.destroy(); }
+                const ctx = chartCanvas.getContext('2d');
+                effortChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: ['Planning', 'Design', 'Dev', 'Testing', 'Launch', 'Fixes'], datasets: [] },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 0
+                        },
+                        scales: { 
+                            y: { 
+                                beginAtZero: true, 
+                                max: 100,
+                                title: { display: true, text: 'Relative Effort / Cost' } 
+                            } 
+                        }, 
+                        plugins: { legend: { display: true }, tooltip: { enabled: true } } 
+                    }
+                });
+                
+                const proactiveCheckbox = document.getElementById('proactiveCheckbox');
+                const reactiveCheckbox = document.getElementById('reactiveCheckbox');
+                
+                const updateChart = () => {
+                    const datasets = [];
+                    if (reactiveCheckbox.checked) {
+                        datasets.push({ label: 'Reactive Effort (Fixes Later)', data: [2, 3, 5, 10, 70, 50], backgroundColor: '#002147' });
+                    }
+                    if (proactiveCheckbox.checked) {
+                        datasets.push({ label: 'Proactive Effort', data: [15, 15, 20, 15, 5, 10], backgroundColor: '#FE615A' });
+                    }
+                    effortChartInstance.data.datasets = datasets;
+                    effortChartInstance.update();
+                };
+                
+                proactiveCheckbox.addEventListener('change', updateChart);
+                reactiveCheckbox.addEventListener('change', updateChart);
+                
+                updateChart();
+            }
+            
+            async function callGeminiApi() {
+                const queryInput = document.getElementById('geminiQuery');
+                const responseEl = document.getElementById('geminiResponse');
+                const loader = document.getElementById('geminiLoader');
+                const askButton = document.getElementById('askGeminiBtn');
+
+                const prompt = `You are a world-class digital accessibility expert. A user at a university is asking a question. Provide a clear, concise, and helpful explanation for the following query: "${queryInput.value}"`;
+
+                loader.style.display = 'block';
+                responseEl.textContent = '';
+                askButton.disabled = true;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        responseEl.textContent = text;
+                    } else {
+                        throw new Error("Invalid response structure from API.");
+                    }
+                } catch (error) {
+                    console.error('Error calling Gemini API:', error);
+                    responseEl.textContent = 'Sorry, I was unable to get a response. Please try again.';
+                } finally {
+                    loader.style.display = 'none';
+                    askButton.disabled = false;
+                }
+            }
+
+            prevBtn.addEventListener('click', () => showSlide(currentSlideIndex - 1));
+            nextBtn.addEventListener('click', () => showSlide(currentSlideIndex + 1));
+
+            document.addEventListener('keydown', (event) => {
+                if (!isArrowNavEnabled) return;
+                
+                if(event.target.id === 'geminiQuery') {
+                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.stopPropagation();
+                        return;
+                    }
+                }
+
+                if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+                    nextBtn.click();
+                } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+                    prevBtn.click();
+                }
+            });
+
+            const arrowNavToggle = document.getElementById('arrowNavToggle');
+            if(arrowNavToggle) {
+                arrowNavToggle.checked = isArrowNavEnabled;
+                arrowNavToggle.addEventListener('change', () => {
+                    isArrowNavEnabled = arrowNavToggle.checked;
+                });
+            }
+
+            populateAgenda();
+            setupInteractiveCards();
+            showSlide(0);
+
+            const askGeminiBtn = document.getElementById('askGeminiBtn');
+            const geminiQueryInput = document.getElementById('geminiQuery');
+            if (askGeminiBtn) {
+                askGeminiBtn.addEventListener('click', callGeminiApi);
+                geminiQueryInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        callGeminiApi();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
