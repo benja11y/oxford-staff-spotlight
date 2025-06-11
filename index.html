@@ -68,6 +68,11 @@
         .slide.active {
             display: flex;
         }
+        .myths-slide-container {
+            justify-content: flex-start;
+            padding-top: 3rem;
+            padding-bottom: 8rem;
+        }
         .chart-container {
             position: relative;
             width: 100%;
@@ -355,7 +360,7 @@
                      <p class="text-xl text-gray-600">Let's bust some common misconceptions.</p>
                 </div>
                 
-                <div class="slide" data-title="The Myths" data-parent="Myth Busting">
+                <div class="slide myths-slide-container" data-title="The Myths" data-parent="Myth Busting">
                     <div class="w-full max-w-6xl flex flex-wrap justify-center gap-6">
                         <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
                             <h3 class="text-xl font-semibold text-slate-700">Myth: Too expensive/time-consuming.</h3>
@@ -484,7 +489,9 @@
             menuOverlay.addEventListener('click', () => toggleMenu(false));
             
             if(skipLink){
-                skipLink.addEventListener('click', () => {
+                skipLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('slide-container').focus();
                      if (window.innerWidth < 1024) {
                         toggleMenu(false);
                     }
@@ -683,6 +690,9 @@
                 const proactiveCheckbox = document.getElementById('proactiveCheckbox');
                 const reactiveCheckbox = document.getElementById('reactiveCheckbox');
                 
+                reactiveCheckbox.checked = true;
+                proactiveCheckbox.checked = false;
+
                 const updateChart = () => {
                     const datasets = [];
                     if (reactiveCheckbox.checked) {
