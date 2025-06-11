@@ -104,12 +104,12 @@
             margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px dashed #cbd5e0;
-            color: #2D7A79;
+            color: #000000;
         }
         .icon::before { font-size: 2em; margin-bottom: 0.5rem; display: inline-block; }
         .icon-permanent::before { content: '♿'; }
         .icon-temporary::before { content: '🩹'; }
-        .icon-situational::before { content: '🎧'; }
+        .icon-situational::before { content: '?'; }
         .icon-moral::before { content: '💖'; }
         .icon-social::before { content: '👥'; }
         .icon-pr::before { content: '🌟'; }
@@ -157,6 +157,14 @@
                  text-align: center;
                  font-size: 0.875rem;
             }
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-reveal {
+            animation: fade-in 0.5s ease-out forwards;
         }
         
         @media print {
@@ -339,7 +347,7 @@
                     <div class="chart-container bg-white p-4 rounded-lg shadow-md"><canvas id="effortChart"></canvas></div>
                     <div class="mt-4 flex justify-center items-center space-x-6">
                         <div class="flex items-center">
-                            <input type="checkbox" id="reactiveCheckbox" class="h-5 w-5 rounded text-slate-700 focus:ring-slate-500" checked>
+                            <input type="checkbox" id="reactiveCheckbox" class="h-5 w-5 rounded text-slate-700 focus:ring-slate-500">
                             <label for="reactiveCheckbox" class="ml-2 text-gray-700">Reactive Effort</label>
                         </div>
                         <div class="flex items-center">
@@ -417,12 +425,13 @@
                 
                 <div class="slide" data-title="Thank You & Resources">
                     <h2 class="text-4xl font-bold text-slate-700">Thank You & Q&A</h2>
-                    <p class="mt-6 text-xl text-gray-600 max-w-2xl">To try the AI Copilot, scan the QR code or drag the link below to your bookmarks bar.</p>
-                    <div class="mt-4 p-4 bg-white rounded-lg shadow-md inline-block">
-                        <div id="qrCodeContainer"></div>
+                    <p class="mt-6 text-xl text-gray-600 max-w-2xl">And who can answer these questions<br>when you're not around...?</p>
+                    <div id="final-resources" class="hidden mt-6 flex flex-col md:flex-row items-center gap-6">
+                        <div class="p-4 bg-white rounded-lg shadow-md inline-block">
+                            <div id="qrCodeContainer"></div>
+                        </div>
+                        <a id="copilotLink" href="#inCaseOfEmergency" class="inline-block bg-blue-800 text-white font-bold text-lg py-3 px-6 rounded-lg shadow-md cursor-move">Drag me to your Bookmarks! ✨</a>
                     </div>
-                    <a id="copilotLink" href="#copilot" class="mt-6 inline-block bg-blue-800 text-white font-bold text-lg py-3 px-6 rounded-lg shadow-md cursor-move">Drag me to your Bookmarks! ✨</a>
-                    <p class="mt-2 text-sm text-gray-500">(For questions for me, just ask!)</p>
                 </div>
             </div>
 
@@ -436,17 +445,20 @@
     
     <div id="standalone-copilot" class="hidden w-full h-full flex items-center justify-center p-4">
         <div class="w-full max-w-2xl">
-            <h1 class="text-4xl font-bold text-slate-700 mb-4 text-center">Accessibility Copilot ✨</h1>
-            <p class="text-lg text-gray-600 max-w-2xl mb-6 text-center">Ask any question about digital accessibility for a live explanation from Gemini.</p>
-            <div class="flex gap-2">
-                <input type="text" id="geminiQuery" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., What is ARIA?">
+            <h1 class="text-4xl font-bold text-slate-700 mb-2 text-center">AI Accessibility Assistant</h1>
+            <p class="text-lg font-normal text-gray-500 mb-8 text-center">(powered by Google Gemini)</p>
+            <div class="my-8">
+                 <label for="geminiQuery" class="block text-lg text-left font-medium text-gray-700 mb-2">Ask any question about digital accessibility for an answer tailored to the University of Oxford.</label>
+                 <input type="text" id="geminiQuery" class="w-full px-4 py-3 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., What is ARIA?">
+            </div>
+            <div class="text-center">
                 <button id="askGeminiBtn" class="btn-action font-bold py-2 px-6 rounded-lg whitespace-nowrap">Ask Gemini</button>
             </div>
             <div id="geminiResponseContainer" class="mt-6 text-left bg-white p-6 rounded-lg shadow-inner min-h-[200px]">
                 <div id="geminiLoader" class="hidden mx-auto loader"></div>
                 <p id="geminiResponse" class="text-gray-700"></p>
             </div>
-             <a href="#" id="backToSlides" class="mt-6 text-blue-700 underline">← Back to Presentation</a>
+             <a href="#" id="backToSlides" class="block text-center mt-6 text-blue-700 underline">← Back to Presentation</a>
         </div>
     </div>
 
@@ -467,7 +479,6 @@
             const hamburgerBtn = document.getElementById('hamburger-btn');
             const closeMenuBtn = document.getElementById('close-menu-btn');
             const menuOverlay = document.getElementById('menu-overlay');
-            const skipLink = document.querySelector('.skip-link');
             const presentationWrapper = document.getElementById('presentation-wrapper');
             const standaloneCopilot = document.getElementById('standalone-copilot');
 
@@ -488,10 +499,11 @@
             closeMenuBtn.addEventListener('click', () => toggleMenu(false));
             menuOverlay.addEventListener('click', () => toggleMenu(false));
             
+            const skipLink = document.querySelector('.skip-link');
             if(skipLink){
                 skipLink.addEventListener('click', (e) => {
                     e.preventDefault();
-                    document.getElementById('slide-container').focus();
+                    document.getElementById('slide-container').focus({preventScroll:true});
                      if (window.innerWidth < 1024) {
                         toggleMenu(false);
                     }
@@ -625,32 +637,40 @@
                 slides.forEach(s => s.classList.remove('active'));
                 slides[index].classList.add('active');
                 currentSlideIndex = index;
-                prevBtn.disabled = index === 0;
-                nextBtn.disabled = index === slides.length - 1;
-                prevBtn.style.opacity = index === 0 ? 0.5 : 1;
-                nextBtn.style.opacity = index === slides.length - 1 ? 0.5 : 1;
+                
+                nextBtn.classList.remove('is-final-reveal');
+                if (index === slides.length - 1) {
+                    nextBtn.classList.add('is-final-reveal');
+                    nextBtn.disabled = false;
+                    nextBtn.style.opacity = 1;
+                } else {
+                    prevBtn.disabled = index === 0;
+                    nextBtn.disabled = index === slides.length - 1;
+                    prevBtn.style.opacity = index === 0 ? 0.5 : 1;
+                    nextBtn.style.opacity = index === slides.length - 1 ? 0.5 : 1;
+                }
+
                 document.title = `Slide ${index + 1} of ${slides.length} - Digital Accessibility @ Oxford`;
                 slideCounter.textContent = `Slide ${index + 1} of ${slides.length}`;
                 updateAgendaActiveState();
+
                 if (slides[index].querySelector('#effortChart')) {
                     renderEffortChart();
                 }
+
                 const activeSlideElement = slides[index];
-                 if(activeSlideElement.dataset.title === 'Thank You & Resources'){
-                    const copilotLink = document.getElementById('copilotLink');
+                if(activeSlideElement.dataset.title === 'Thank You & Resources'){
                     const qrCodeContainer = document.getElementById('qrCodeContainer');
-                    if (copilotLink && qrCodeContainer) {
+                    const copilotLink = document.getElementById('copilotLink');
+                    if (qrCodeContainer && copilotLink) {
                         const url = new URL(window.location.href);
-                        url.hash = 'copilot';
+                        url.hash = 'inCaseOfEmergency';
                         copilotLink.href = url.href;
                         qrCodeContainer.innerHTML = '';
                         new QRCode(qrCodeContainer, {
                             text: url.href,
                             width: 150,
                             height: 150,
-                            colorDark : "#000000",
-                            colorLight : "#ffffff",
-                            correctLevel : QRCode.CorrectLevel.H
                         });
                     }
                 }
@@ -667,23 +687,11 @@
                     options: { 
                         responsive: true, 
                         maintainAspectRatio: false,
-                        animation: {
-                            duration: 0
-                        },
+                        animation: { duration: 0 },
                         scales: { 
-                            y: { 
-                                beginAtZero: true, 
-                                max: 100,
-                                title: { display: true, text: 'Relative Effort / Cost' } 
-                            } 
+                            y: { beginAtZero: true, max: 100, title: { display: true, text: 'Relative Effort / Cost' } } 
                         }, 
-                        plugins: { 
-                            legend: { 
-                                display: true,
-                                position: 'bottom'
-                            }, 
-                            tooltip: { enabled: true } 
-                        } 
+                        plugins: { legend: { display: true, position: 'bottom' }, tooltip: { enabled: true } } 
                     }
                 });
                 
@@ -717,7 +725,7 @@
                 const loader = document.getElementById('geminiLoader');
                 const askButton = document.getElementById('askGeminiBtn');
 
-                const prompt = `You are a world-class digital accessibility expert. A user at a university is asking a question. Provide a clear, concise, and helpful explanation for the following query: "${queryInput.value}"`;
+                const prompt = `You are a world-class digital accessibility expert. A member of staff at a university is asking a question. Provide a clear, concise, and helpful explanation for the following query: "${queryInput.value}. If you can construct a response in 30 words or fewer, please do. Failing that, try to create the most concise answer you could. You do not need to set the scene and context of your answer unless explicitally asked by the member of staff."`;
 
                 loader.style.display = 'block';
                 responseEl.textContent = '';
@@ -759,37 +767,25 @@
                 }
             }
 
-            function handleAppMode() {
-                const hash = window.location.hash;
-                if (hash === '#copilot') {
-                    presentationWrapper.style.display = 'none';
-                    document.body.classList.remove('flex');
-                    agendaContainer.style.display = 'none';
-                    standaloneCopilot.style.display = 'flex';
-                } else {
-                    presentationWrapper.style.display = 'block';
-                    document.body.classList.add('flex');
-                    agendaContainer.style.display = 'block';
-                    standaloneCopilot.style.display = 'none';
-                    const slideIndexMatch = hash.match(/^#slide-(\d+)$/);
-                    if (slideIndexMatch) {
-                        const slideIndex = parseInt(slideIndexMatch[1], 10);
-                        if (!isNaN(slideIndex) && slideIndex < slides.length) {
-                            showSlide(slideIndex);
-                        } else {
-                            showSlide(0);
-                        }
-                    } else {
-                        showSlide(0);
-                    }
+            function revealFinalResources() {
+                const finalResources = document.getElementById('final-resources');
+                if (finalResources) {
+                    finalResources.style.display = 'flex';
+                    finalResources.classList.add('fade-in-reveal');
                 }
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = 0.5;
             }
 
-            window.addEventListener('hashchange', handleAppMode);
-
-
             prevBtn.addEventListener('click', () => showSlide(currentSlideIndex - 1));
-            nextBtn.addEventListener('click', () => showSlide(currentSlideIndex + 1));
+            nextBtn.addEventListener('click', () => {
+                if (nextBtn.classList.contains('is-final-reveal')) {
+                    revealFinalResources();
+                    nextBtn.classList.remove('is-final-reveal');
+                } else {
+                    showSlide(currentSlideIndex + 1);
+                }
+            });
 
             document.addEventListener('keydown', (event) => {
                 if (!isArrowNavEnabled) return;
@@ -823,6 +819,35 @@
                 });
             }
 
+            function handleAppMode() {
+                const hash = window.location.hash;
+                if (hash === '#inCaseOfEmergency') {
+                    document.title = "AI Accessibility Assistant";
+                    presentationWrapper.style.display = 'none';
+                    document.body.classList.remove('flex');
+                    agendaContainer.style.display = 'none';
+                    standaloneCopilot.style.display = 'flex';
+                } else {
+                    presentationWrapper.style.display = 'block';
+                    document.body.classList.add('flex');
+                    agendaContainer.style.display = 'block';
+                    standaloneCopilot.style.display = 'none';
+                    const slideIndexMatch = hash.match(/^#slide-(\d+)$/);
+                    if (slideIndexMatch) {
+                        const slideIndex = parseInt(slideIndexMatch[1], 10);
+                        if (!isNaN(slideIndex) && slideIndex < slides.length) {
+                            showSlide(slideIndex);
+                        } else {
+                            showSlide(0);
+                        }
+                    } else {
+                        showSlide(0);
+                    }
+                }
+            }
+
+            window.addEventListener('hashchange', handleAppMode);
+
             document.getElementById('backToSlides').addEventListener('click', (e) => {
                 e.preventDefault();
                 const newUrl = new URL(window.location);
@@ -837,7 +862,7 @@
 
             const askGeminiBtn = document.getElementById('askGeminiBtn');
             const geminiQueryInput = document.getElementById('geminiQuery');
-            if (askGeminiBtn) {
+            if (askGeminiBtn && geminiQueryInput) {
                 askGeminiBtn.addEventListener('click', callGeminiApi);
                 geminiQueryInput.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
