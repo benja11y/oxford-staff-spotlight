@@ -6,6 +6,7 @@
     <title>Presentation: Digital Accessibility at Oxford</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,9 +19,11 @@
             font-family: 'Roboto', sans-serif;
             background-color: #FDFBF7;
             color: #3d4758;
-            display: flex;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
+        }
+        body.menu-open {
             overflow: hidden;
         }
         *:focus-visible {
@@ -31,6 +34,7 @@
         #agenda {
             background-color: #F0EBE5;
             color: #4A5568;
+            transition: transform 0.3s ease-in-out;
         }
         .agenda-parent-title {
             cursor: pointer;
@@ -133,251 +137,359 @@
             background-color: #002147;
         }
 
+        .skip-link {
+            display: none; 
+        }
+
+        @media (min-width: 1024px) {
+            .skip-link {
+                 display: block;
+                 background: #002147;
+                 color: white;
+                 padding: 0.5rem;
+                 margin-bottom: 0.75rem;
+                 border-radius: 0.25rem;
+                 text-align: center;
+                 font-size: 0.875rem;
+            }
+        }
+        
+        @media print {
+            body {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            #agenda, #hamburger-btn, #prevBtn, #nextBtn, #slide-counter, #printBtn, #menu-overlay, #aria-announcer, .skip-link, [data-title="Thank You & Resources"] {
+                display: none !important;
+            }
+            main, #presentation-area, #slide-container {
+                width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                overflow: visible !important;
+            }
+            .slide {
+                display: block !important;
+                page-break-after: always;
+                height: 95vh;
+                padding: 1in;
+                box-sizing: border-box;
+            }
+            .myth-card {
+                height: auto;
+            }
+            .myth-card .rebuttal {
+                display: block !important;
+            }
+            #standalone-copilot {
+                display: none !important;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="flex">
+    
     <div id="aria-announcer" class="sr-only" aria-live="assertive"></div>
 
-    <aside id="agenda" class="w-1/5 h-full p-4 space-y-2 overflow-y-auto">
-        <h2 class="text-lg font-bold mb-4">Agenda</h2>
-        <!-- Agenda will be populated by JS -->
+    <aside id="agenda" class="h-full p-4 space-y-2 overflow-y-auto fixed top-0 left-0 w-4/5 sm:w-1/3 lg:w-1/5 z-40 -translate-x-full lg:relative lg:translate-x-0">
+        <div class="flex items-center justify-between border-b pb-2 mb-2">
+            <h2 class="text-lg font-bold">Agenda</h2>
+            <button id="close-menu-btn" class="lg:hidden p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <a href="#slide-container" class="skip-link">Skip to slide content</a>
+        <div class="flex items-center text-sm text-gray-600 p-2 rounded-lg border bg-white/50 mb-4">
+            <label for="arrowNavToggle" class="mr-3 font-medium cursor-pointer">Arrow Key Navigation</label>
+            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in ml-auto">
+                <input type="checkbox" name="arrowNavToggle" id="arrowNavToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                <label for="arrowNavToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+            </div>
+        </div>
+        <div id="agenda-items"></div>
     </aside>
+    <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
 
-    <main id="presentation-area" class="w-4/5 h-full relative">
-        <div id="slide-container" class="h-full">
-            <!-- Slides with new data-parent attribute -->
-            <div class="slide active" data-title="Title">
-                <div class="absolute top-6 left-6 flex items-center text-sm text-gray-600 bg-white/70 p-2 rounded-lg z-10">
-                    <label for="arrowNavToggle" class="mr-3 font-medium cursor-pointer">Arrow Key Navigation</label>
-                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" name="arrowNavToggle" id="arrowNavToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                        <label for="arrowNavToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+    <div id="presentation-wrapper" class="w-full h-full">
+        <main id="presentation-area" class="w-full h-full relative">
+            <button id="hamburger-btn" class="lg:hidden fixed top-4 left-4 z-20 p-2 bg-white/70 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <div id="slide-container" class="h-full">
+                <!-- Slides with new data-parent attribute -->
+                <div class="slide active" data-title="Title">
+                    <h1 class="text-5xl font-bold text-slate-800">Digital Accessibility @ Oxford</h1>
+                    <p class="mt-4 text-2xl text-gray-700">Staff Spotlight Presentation</p>
+                    <p class="mt-2 text-lg text-gray-600">Ben Tillyer - Head of Digital Accessibility (UX Centre of Excellence)</p>
+                </div>
+
+                <div class="slide" data-title="About Me">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">About Me</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl">A passionate advocate for building an inclusive and accessible digital world for everyone.</p>
+                    <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside space-y-3">
+                        <li>Currently leading the digital accessibility strategy at the University of Oxford.</li>
+                        <li>Focused on embedding accessibility into the university's culture—moving from reactive fixes to proactive, inclusive design.</li>
+                        <li>Strong believer in the "Shift Left" principle: making accessibility a core part of the process from the very beginning.</li>
+                        <li>Committed to providing staff and students with the tools and knowledge they need to succeed in creating an accessible digital campus.</li>
+                    </ul>
+                </div>
+
+                <div class="slide" data-title="Intro" data-parent="What is DA?">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">What is Digital Accessibility?</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl">Ensuring that digital tools and resources are designed and developed so that people with disabilities can perceive, understand, navigate, and interact with them, as well as contribute.</p>
+                    <p class="mt-4 text-lg text-gray-500">It's about inclusivity and providing equal access and opportunity.</p>
+                </div>
+                <div class="slide" data-title="Permanent" data-parent="What is DA?">
+                    <h2 class="text-3xl font-bold text-slate-700 mb-6">Permanent Limitations</h2>
+                    <div class="icon icon-permanent mb-4"></div>
+                    <p class="text-xl text-gray-600 max-w-3xl">Addressing lifelong disabilities. These are often what first come to mind with accessibility.</p>
+                    <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                        <li>Blindness (requiring screen readers)</li>
+                        <li>Deafness (requiring captions)</li>
+                        <li>Motor impairments (requiring keyboard or switch access)</li>
+                    </ul>
+                </div>
+                <div class="slide" data-title="Temporary" data-parent="What is DA?">
+                    <h2 class="text-3xl font-bold text-slate-700 mb-6">Temporary Limitations</h2>
+                    <div class="icon icon-temporary mb-4"></div>
+                    <p class="text-xl text-gray-600 max-w-3xl">Short-term impairments that can affect anyone.</p>
+                    <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                        <li>Broken arm (relying on one-handed operation or voice)</li>
+                        <li>Ear infection (needing captions temporarily)</li>
+                        <li>Recovering from eye surgery (needing high contrast/magnification)</li>
+                    </ul>
+                </div>
+                <div class="slide" data-title="Situational" data-parent="What is DA?">
+                    <h2 class="text-3xl font-bold text-slate-700 mb-6">Situational Limitations</h2>
+                     <div class="icon icon-situational mb-4"></div>
+                    <p class="text-xl text-gray-600 max-w-3xl">Circumstances that create barriers based on environment or context.</p>
+                     <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
+                        <li>Noisy environment (unable to hear audio)</li>
+                        <li>Bright sunlight (screen difficult to see)</li>
+                        <li>Holding a baby (one-handed device use)</li>
+                    </ul>
+                     <p class="mt-6 text-xl font-semibold text-slate-700">Designing for these benefits EVERYONE!</p>
+                </div>
+                
+                <div class="slide" data-title="Intro" data-parent="Why it Matters">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">Why Does Accessibility Matter?</h2>
+                    <p class="text-xl text-gray-600">It's fundamental to the University of Oxford's mission and values.</p>
+                </div>
+                <div class="slide" data-title="Moral Case" data-parent="Why it Matters">
+                     <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-moral inline-block mr-2"></span>Moral Case</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">It's simply the right thing to do, ensuring fairness and equal opportunity for all members of our community.</p>
+                </div>
+                <div class="slide" data-title="Social Case" data-parent="Why it Matters">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-social inline-block mr-2"></span>Social Case</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">Fosters a diverse and inclusive environment, allowing full participation in university life for everyone.</p>
+                </div>
+                <div class="slide" data-title="PR & Brand" data-parent="Why it Matters">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-pr inline-block mr-2"></span>PR & Brand</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">Reinforces Oxford's image as a leading, forward-thinking institution. This is a positive side-effect of doing the right thing, not the primary driver.</p>
+                </div>
+                <div class="slide" data-title="Legal" data-parent="Why it Matters">
+                     <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-legal inline-block mr-2"></span>Legal Requirements</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">Adherence to standards like the <a href="https://www.legislation.gov.uk/ukpga/2010/15/contents" target="_blank" rel="noopener noreferrer" class="underline text-blue-700">Equality Act 2010</a> and the <a href="https://www.legislation.gov.uk/uksi/2018/952/contents" target="_blank" rel="noopener noreferrer" class="underline text-blue-700">Public Sector Bodies Accessibility Regulations (PSBAR) 2018</a>.</p>
+                </div>
+                 <div class="slide" data-title="Innovation" data-parent="Why it Matters">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-innovation inline-block mr-2"></span>Innovation Driver</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">Constraints breed creativity. Designing for accessibility often leads to innovative solutions benefiting all users (e.g., curb cuts, voice controls).</p>
+                </div>
+                <div class="slide" data-title="Better UX" data-parent="Why it Matters">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-ux inline-block mr-2"></span>Better User Experience</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">Good accessibility IS good UX. It results in clearer, more intuitive, and more robust digital services for everyone.</p>
+                </div>
+
+                <div class="slide" data-title="Digital Accessibility & Support">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">Digital Accessibility & Support Systems</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mb-8">Digital accessibility is the proactive foundation, complementing other essential supports.</p>
+                    <div class="w-full max-w-3xl p-6 bg-white rounded-lg shadow-lg mb-8">
+                        <div class="border-b-4 border-slate-700 pb-3 mb-3">
+                            <h4 class="text-2xl font-semibold text-slate-700">1. Digital Accessibility (Built-in)</h4>
+                            <p class="text-md text-gray-600">This means ensuring things work for everyone from the start, like making a site navigable with just a keyboard. It's the digital equivalent of building ramps into a physical space.</p>
+                        </div>
+                        <div class="border-b-4 border-sky-500 pb-3 mb-3">
+                            <h4 class="text-2xl font-semibold text-sky-600">2. Assistive Technology (AT) (User Tools)</h4>
+                            <p class="text-md text-gray-600">Specialised tools (like screen readers or voice input) that users bring, or the University provides. These rely on good digital accessibility to function correctly.</p>
+                        </div>
+                        <div class="border-b-4 border-amber-500 pb-3">
+                            <h4 class="text-2xl font-semibold text-amber-600">3. Reasonable Adjustments / Support</h4>
+                            <p class="text-md text-gray-600">Individualised, often reactive, supports such as providing specific document formats or human assistance when needed.</p>
+                        </div>
+                    </div>
+                    <div class="w-full max-w-3xl grid md:grid-cols-2 gap-6 text-left">
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <p class="font-semibold text-slate-800">→ Assistive Technology works best with accessible content.</p>
+                        </div>
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <p class="font-semibold text-slate-800">→ Accessible content reduces the need for reasonable adjustments and increases independence.</p>
+                        </div>
                     </div>
                 </div>
-                <h1 class="text-5xl font-bold text-slate-800">Digital Accessibility @ Oxford</h1>
-                <p class="mt-4 text-2xl text-gray-700">Staff Spotlight Presentation</p>
-                <p class="mt-2 text-lg text-gray-600">Ben Tillyer - Head of Digital Accessibility (UX Centre of Excellence)</p>
-            </div>
 
-            <div class="slide" data-title="About Me">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">About Me</h2>
-                <p class="text-xl text-gray-600 max-w-3xl">A passionate advocate for building an inclusive and accessible digital world for everyone.</p>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside space-y-3">
-                    <li>Currently leading the digital accessibility strategy at the University of Oxford.</li>
-                    <li>Focused on embedding accessibility into the university's culture—moving from reactive fixes to proactive, inclusive design.</li>
-                    <li>Strong believer in the "Shift Left" principle: making accessibility a core part of the process from the very beginning.</li>
-                    <li>Committed to providing staff and students with the tools and knowledge they need to succeed in creating an accessible digital campus.</li>
-                </ul>
-            </div>
-
-            <div class="slide" data-title="Intro" data-parent="What is DA?">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">What is Digital Accessibility?</h2>
-                <p class="text-xl text-gray-600 max-w-3xl">Ensuring that digital tools and resources are designed and developed so that people with disabilities can perceive, understand, navigate, and interact with them, as well as contribute.</p>
-                <p class="mt-4 text-lg text-gray-500">It's about inclusivity and providing equal access and opportunity.</p>
-            </div>
-            <div class="slide" data-title="Permanent" data-parent="What is DA?">
-                <h2 class="text-3xl font-bold text-slate-700 mb-6">Permanent Limitations</h2>
-                <div class="icon icon-permanent mb-4"></div>
-                <p class="text-xl text-gray-600 max-w-3xl">Addressing lifelong disabilities. These are often what first come to mind with accessibility.</p>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
-                    <li>Blindness (requiring screen readers)</li>
-                    <li>Deafness (requiring captions)</li>
-                    <li>Motor impairments (requiring keyboard or switch access)</li>
-                </ul>
-            </div>
-            <div class="slide" data-title="Temporary" data-parent="What is DA?">
-                <h2 class="text-3xl font-bold text-slate-700 mb-6">Temporary Limitations</h2>
-                <div class="icon icon-temporary mb-4"></div>
-                <p class="text-xl text-gray-600 max-w-3xl">Short-term impairments that can affect anyone.</p>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
-                    <li>Broken arm (relying on one-handed operation or voice)</li>
-                    <li>Ear infection (needing captions temporarily)</li>
-                    <li>Recovering from eye surgery (needing high contrast/magnification)</li>
-                </ul>
-            </div>
-            <div class="slide" data-title="Situational" data-parent="What is DA?">
-                <h2 class="text-3xl font-bold text-slate-700 mb-6">Situational Limitations</h2>
-                 <div class="icon icon-situational mb-4"></div>
-                <p class="text-xl text-gray-600 max-w-3xl">Circumstances that create barriers based on environment or context.</p>
-                 <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside">
-                    <li>Noisy environment (unable to hear audio)</li>
-                    <li>Bright sunlight (screen difficult to see)</li>
-                    <li>Holding a baby (one-handed device use)</li>
-                </ul>
-                 <p class="mt-6 text-xl font-semibold text-slate-700">Designing for these benefits EVERYONE!</p>
-            </div>
-            
-            <div class="slide" data-title="Intro" data-parent="Why it Matters">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">Why Does Accessibility Matter?</h2>
-                <p class="text-xl text-gray-600">It's fundamental to the University of Oxford's mission and values.</p>
-            </div>
-            <div class="slide" data-title="Moral Case" data-parent="Why it Matters">
-                 <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-moral inline-block mr-2"></span>Moral Case</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">It's simply the right thing to do, ensuring fairness and equal opportunity for all members of our community.</p>
-            </div>
-            <div class="slide" data-title="Social Case" data-parent="Why it Matters">
-                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-social inline-block mr-2"></span>Social Case</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">Fosters a diverse and inclusive environment, allowing full participation in university life for everyone.</p>
-            </div>
-            <div class="slide" data-title="PR & Brand" data-parent="Why it Matters">
-                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-pr inline-block mr-2"></span>PR & Brand</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">Reinforces Oxford's image as a leading, forward-thinking institution. This is a positive side-effect of doing the right thing, not the primary driver.</p>
-            </div>
-            <div class="slide" data-title="Legal" data-parent="Why it Matters">
-                 <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-legal inline-block mr-2"></span>Legal Requirements</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">Adherence to standards like the Equality Act 2010 and Public Sector Bodies Accessibility Regulations (PSBAR) 2018.</p>
-            </div>
-             <div class="slide" data-title="Innovation" data-parent="Why it Matters">
-                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-innovation inline-block mr-2"></span>Innovation Driver</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">Constraints breed creativity. Designing for accessibility often leads to innovative solutions benefiting all users (e.g., curb cuts, voice controls).</p>
-            </div>
-            <div class="slide" data-title="Better UX" data-parent="Why it Matters">
-                <h3 class="text-3xl font-bold text-slate-700 mb-4"><span class="icon icon-ux inline-block mr-2"></span>Better User Experience</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">Good accessibility IS good UX. It results in clearer, more intuitive, and more robust digital services for everyone.</p>
-            </div>
-
-            <div class="slide" data-title="Digital Accessibility & Support">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">Digital Accessibility & Support Systems</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mb-8">Digital accessibility is the proactive foundation, complementing other essential supports.</p>
-                <div class="w-full max-w-3xl p-6 bg-white rounded-lg shadow-lg mb-8">
-                    <div class="border-b-4 border-slate-700 pb-3 mb-3">
-                        <h4 class="text-2xl font-semibold text-slate-700">1. Digital Accessibility (Built-in)</h4>
-                        <p class="text-md text-gray-600">This means ensuring things work for everyone from the start, like making a site navigable with just a keyboard. It's the digital equivalent of building ramps into a physical space.</p>
-                    </div>
-                    <div class="border-b-4 border-sky-500 pb-3 mb-3">
-                        <h4 class="text-2xl font-semibold text-sky-600">2. Assistive Technology (AT) (User Tools)</h4>
-                        <p class="text-md text-gray-600">Specialised tools (like screen readers or voice input) that users bring, or the University provides. These rely on good digital accessibility to function correctly.</p>
-                    </div>
-                    <div class="border-b-4 border-amber-500 pb-3">
-                        <h4 class="text-2xl font-semibold text-amber-600">3. Reasonable Adjustments / Support</h4>
-                        <p class="text-md text-gray-600">Individualised, often reactive, supports such as providing specific document formats or human assistance when needed.</p>
+                <div class="slide" data-title="Reactive to Proactive">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">Moving from Reactive to Proactive</h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mb-4">The "Shift Left" Principle: Embedding accessibility from the very start of any project or content creation.</p>
+                    <div class="chart-container bg-white p-4 rounded-lg shadow-md"><canvas id="effortChart"></canvas></div>
+                    <div class="mt-4 flex justify-center items-center space-x-6">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="reactiveCheckbox" class="h-5 w-5 rounded text-slate-700 focus:ring-slate-500" checked>
+                            <label for="reactiveCheckbox" class="ml-2 text-gray-700">Reactive Effort</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="proactiveCheckbox" class="h-5 w-5 rounded text-amber-600 focus:ring-amber-500" checked>
+                            <label for="proactiveCheckbox" class="ml-2 text-gray-700">Proactive Effort</label>
+                        </div>
                     </div>
                 </div>
-                <div class="w-full max-w-3xl grid md:grid-cols-2 gap-6 text-left">
-                    <div class="bg-slate-100 p-4 rounded-lg">
-                        <p class="font-semibold text-slate-800">→ Assistive Technology works best with accessible content.</p>
+                 <div class="slide" data-title="Benefits of Proactive">
+                    <h2 class="text-3xl font-bold text-slate-700 mb-6">Benefits of Being Proactive</h2>
+                    <ul class="text-left max-w-2xl text-xl text-gray-700 list-disc list-inside space-y-3">
+                        <li>More cost-effective in the long run (retrofitting is expensive!)</li><li>Better, more robust user experiences for everyone</li><li>Reduced legal and reputational risk</li><li>Fosters a genuinely inclusive culture</li><li>Less retrofitting and duplicated effort</li>
+                    </ul>
+                </div>
+
+                <div class="slide" data-title="Intro" data-parent="Myth Busting">
+                     <h2 class="text-4xl font-bold text-slate-700 mb-6">Myths About Accessibility</h2>
+                     <p class="text-xl text-gray-600">Let's bust some common misconceptions.</p>
+                </div>
+                
+                <div class="slide" data-title="The Myths" data-parent="Myth Busting">
+                    <div class="w-full max-w-6xl flex flex-wrap justify-center gap-6">
+                        <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
+                            <h3 class="text-xl font-semibold text-slate-700">Myth: Too expensive/time-consuming.</h3>
+                            <p class="rebuttal text-lg">Truth: Fixing issues late is far more expensive. Building accessibility in from the start ('shifting left') is efficient and cost-effective.</p>
+                        </div>
+                        <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
+                            <h3 class="text-xl font-semibold text-slate-700">Myth: Only benefits a very small number of people.</h3>
+                            <p class="rebuttal text-lg">Truth: It benefits many, including those with temporary (e.g., broken arm) and situational (e.g., noisy environment) limitations. Plus, good accessibility improves usability for ALL users.</p>
+                        </div>
+                        <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
+                            <h3 class="text-xl font-semibold text-slate-700">Myth: It makes things look ugly / stifles creativity.</h3>
+                            <p class="rebuttal text-lg">Truth: This is false. Inclusive design can be beautiful, modern, and innovative. Accessibility and great design are not mutually exclusive.</p>
+                        </div>
+                        <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
+                            <h3 class="text-xl font-semibold text-slate-700">Myth: Automated tools catch all accessibility issues.</h3>
+                            <p class="rebuttal text-lg">Truth: Automated tools are helpful (catching ~30-40% of issues) but cannot replace manual testing by experts and, crucially, testing with users with disabilities.</p>
+                        </div>
+                        <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
+                            <h3 class="text-xl font-semibold text-slate-700">Myth: We don't have any disabled users.</h3>
+                            <p class="rebuttal text-lg">Truth: You almost certainly do, as many disabilities are not visible or disclosed. Proactive accessibility ensures you're prepared for everyone.</p>
+                        </div>
                     </div>
-                    <div class="bg-slate-100 p-4 rounded-lg">
-                        <p class="font-semibold text-slate-800">→ Accessible content reduces the need for reasonable adjustments and increases independence.</p>
+                </div>
+                
+                <div class="slide" data-title="Intro" data-parent="Accessibility @ Oxford">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-6">Accessibility @ Oxford IT Services</h2>
+                     <p class="text-xl text-gray-600 max-w-3xl">Our journey and commitment to a digitally inclusive university.</p>
+                </div>
+                <div class="slide" data-title="History" data-parent="Accessibility @ Oxford">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-6">History & Foundations</h3>
+                    <p class="text-xl text-gray-600 max-w-3xl">The University of Oxford has long been committed to supporting its community. Early efforts were foundational, establishing key support services and laying the groundwork for a more structured approach to digital inclusion. These initial steps were crucial in building the momentum we see today.</p>
+                </div>
+                <div class="slide" data-title="Current" data-parent="Accessibility @ Oxford">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-6">Current Initiatives</h3>
+                    <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Central resources & training.</li><li>Procurement policy work.</li><li>Champions network.</li><li>Consultancy and support.</li></ul>
+                </div>
+                <div class="slide" data-title="Future" data-parent="Accessibility @ Oxford">
+                    <h3 class="text-3xl font-bold text-slate-700 mb-6">Future Vision</h3>
+                    <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Accessibility as a core standard.</li><li>Empowering staff and students.</li><li>Continuous improvement.</li><li>Fostering inclusive design culture.</li></ul>
+                </div>
+
+                <div class="slide" data-title="Call to Action">
+                    <h2 class="text-4xl font-bold text-slate-700 mb-8">Let's Make Oxford Accessible Together</h2>
+                    <div class="grid md:grid-cols-2 gap-6 max-w-4xl">
+                        <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">Key Takeaways</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Accessibility benefits everyone.</li><li>Proactive design is essential & efficient.</li><li>It's a shared responsibility.</li></ul></div>
+                        <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">How You Can Help</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Attend training, use our resources.</li><li>Consider accessibility in your projects.</li><li>Become an accessibility champion.</li><li>Ask questions, provide feedback.</li></ul></div>
                     </div>
+                     <p class="mt-10 text-lg text-gray-600">
+                        Visit: Accessibility Homepage... Coming Soon? <br/> 
+                        Contact: <a href="mailto:Ben.Tillyer@it.ox.ac.uk" class="text-blue-700 underline">Ben.Tillyer@it.ox.ac.uk</a> | <a href="mailto:Digital.Accessibility@it.ox.ac.uk" class="text-blue-700 underline">Digital.Accessibility@it.ox.ac.uk</a>
+                     </p>
+                     <button id="printBtn" class="mt-8 btn-nav py-2 px-5 rounded-lg">Print or Save as PDF</button>
+                </div>
+                
+                <div class="slide" data-title="Thank You & Resources">
+                    <h2 class="text-4xl font-bold text-slate-700">Thank You & Q&A</h2>
+                    <p class="mt-6 text-xl text-gray-600 max-w-2xl">To try the AI Copilot, scan the QR code or drag the link below to your bookmarks bar.</p>
+                    <div class="mt-4 p-4 bg-white rounded-lg shadow-md inline-block">
+                        <div id="qrCodeContainer"></div>
+                    </div>
+                    <a id="copilotLink" href="#copilot" class="mt-6 inline-block bg-blue-800 text-white font-bold text-lg py-3 px-6 rounded-lg shadow-md cursor-move">Drag me to your Bookmarks! ✨</a>
+                    <p class="mt-2 text-sm text-gray-500">(For questions for me, just ask!)</p>
                 </div>
             </div>
 
-            <div class="slide" data-title="Reactive to Proactive">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">Moving from Reactive to Proactive</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mb-4">The "Shift Left" Principle: Embedding accessibility from the very start of any project or content creation.</p>
-                <div class="chart-container bg-white p-4 rounded-lg shadow-md"><canvas id="effortChart"></canvas></div>
-                <div class="mt-4 flex justify-center items-center space-x-6">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="reactiveCheckbox" class="h-5 w-5 rounded text-slate-700 focus:ring-slate-500" checked>
-                        <label for="reactiveCheckbox" class="ml-2 text-gray-700">Reactive Effort</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="proactiveCheckbox" class="h-5 w-5 rounded text-amber-600 focus:ring-amber-500" checked>
-                        <label for="proactiveCheckbox" class="ml-2 text-gray-700">Proactive Effort</label>
-                    </div>
-                </div>
+            <div class="absolute bottom-0 left-0 right-0 flex justify-between p-4 bg-opacity-50 bg-gray-100 print:hidden">
+                <button id="prevBtn" class="btn-nav py-2 px-5 rounded-lg">Previous</button>
+                <div id="slide-counter" class="text-slate-700 self-center"></div>
+                <button id="nextBtn" class="btn-nav py-2 px-5 rounded-lg">Next</button>
             </div>
-             <div class="slide" data-title="Benefits of Proactive">
-                <h2 class="text-3xl font-bold text-slate-700 mb-6">Benefits of Being Proactive</h2>
-                <ul class="text-left max-w-2xl text-xl text-gray-700 list-disc list-inside space-y-3">
-                    <li>More cost-effective in the long run (retrofitting is expensive!)</li><li>Better, more robust user experiences for everyone</li><li>Reduced legal and reputational risk</li><li>Fosters a genuinely inclusive culture</li><li>Less retrofitting and duplicated effort</li>
-                </ul>
+        </main>
+    </div>
+    
+    <div id="standalone-copilot" class="hidden w-full h-full flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl">
+            <h1 class="text-4xl font-bold text-slate-700 mb-4 text-center">Accessibility Copilot ✨</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mb-6 text-center">Ask any question about digital accessibility for a live explanation from Gemini.</p>
+            <div class="flex gap-2">
+                <input type="text" id="geminiQuery" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., What is ARIA?">
+                <button id="askGeminiBtn" class="btn-action font-bold py-2 px-6 rounded-lg whitespace-nowrap">Ask Gemini</button>
             </div>
-
-            <div class="slide" data-title="Intro" data-parent="Myth Busting">
-                 <h2 class="text-4xl font-bold text-slate-700 mb-6">Myths About Accessibility</h2>
-                 <p class="text-xl text-gray-600">Let's bust some common misconceptions.</p>
+            <div id="geminiResponseContainer" class="mt-6 text-left bg-white p-6 rounded-lg shadow-inner min-h-[200px]">
+                <div id="geminiLoader" class="hidden mx-auto loader"></div>
+                <p id="geminiResponse" class="text-gray-700"></p>
             </div>
-            
-            <div class="slide" data-title="The Myths" data-parent="Myth Busting">
-                <div class="w-full max-w-6xl flex flex-wrap justify-center gap-6">
-                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
-                        <h3 class="text-xl font-semibold text-slate-700">Myth: Too expensive/time-consuming.</h3>
-                        <p class="rebuttal text-lg">Truth: Fixing issues late is far more expensive. Building accessibility in from the start ('shifting left') is efficient and cost-effective.</p>
-                    </div>
-                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
-                        <h3 class="text-xl font-semibold text-slate-700">Myth: Only benefits a very small number of people.</h3>
-                        <p class="rebuttal text-lg">Truth: It benefits many, including those with temporary (e.g., broken arm) and situational (e.g., noisy environment) limitations. Plus, good accessibility improves usability for ALL users.</p>
-                    </div>
-                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
-                        <h3 class="text-xl font-semibold text-slate-700">Myth: It makes things look ugly / stifles creativity.</h3>
-                        <p class="rebuttal text-lg">Truth: This is false. Inclusive design can be beautiful, modern, and innovative. Accessibility and great design are not mutually exclusive.</p>
-                    </div>
-                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
-                        <h3 class="text-xl font-semibold text-slate-700">Myth: Automated tools catch all accessibility issues.</h3>
-                        <p class="rebuttal text-lg">Truth: Automated tools are helpful (catching ~30-40% of issues) but cannot replace manual testing by experts and, crucially, testing with users with disabilities.</p>
-                    </div>
-                    <div class="myth-card shadow-xl w-full sm:w-80" role="button" tabindex="0" aria-expanded="false">
-                        <h3 class="text-xl font-semibold text-slate-700">Myth: We don't have any disabled users.</h3>
-                        <p class="rebuttal text-lg">Truth: You almost certainly do, as many disabilities are not visible or disclosed. Proactive accessibility ensures you're prepared for everyone.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="slide" data-title="Intro" data-parent="Accessibility @ Oxford">
-                <h2 class="text-4xl font-bold text-slate-700 mb-6">Accessibility @ Oxford IT Services</h2>
-                 <p class="text-xl text-gray-600 max-w-3xl">Our journey and commitment to a digitally inclusive university.</p>
-            </div>
-            <div class="slide" data-title="History" data-parent="Accessibility @ Oxford">
-                <h3 class="text-3xl font-bold text-slate-700 mb-6">History & Foundations</h3>
-                <p class="text-xl text-gray-600 max-w-3xl">The University of Oxford has long been committed to supporting its community. Early efforts were foundational, establishing key support services and laying the groundwork for a more structured approach to digital inclusion. These initial steps were crucial in building the momentum we see today.</p>
-            </div>
-            <div class="slide" data-title="Current" data-parent="Accessibility @ Oxford">
-                <h3 class="text-3xl font-bold text-slate-700 mb-6">Current Initiatives</h3>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Central resources & training.</li><li>Procurement policy work.</li><li>Champions network.</li><li>Consultancy and support.</li></ul>
-            </div>
-            <div class="slide" data-title="Future" data-parent="Accessibility @ Oxford">
-                <h3 class="text-3xl font-bold text-slate-700 mb-6">Future Vision</h3>
-                <ul class="mt-4 text-left max-w-2xl text-lg list-disc list-inside"><li>Accessibility as a core standard.</li><li>Empowering staff and students.</li><li>Continuous improvement.</li><li>Fostering inclusive design culture.</li></ul>
-            </div>
-
-            <div class="slide" data-title="Call to Action">
-                <h2 class="text-4xl font-bold text-slate-700 mb-8">Let's Make Oxford Accessible Together</h2>
-                <div class="grid md:grid-cols-2 gap-6 max-w-4xl">
-                    <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">Key Takeaways</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Accessibility benefits everyone.</li><li>Proactive design is essential & efficient.</li><li>It's a shared responsibility.</li></ul></div>
-                    <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-2xl font-semibold text-slate-700 mb-3">How You Can Help</h3><ul class="text-left text-lg text-gray-600 list-disc list-inside space-y-2"><li>Attend training, use our resources.</li><li>Consider accessibility in your projects.</li><li>Become an accessibility champion.</li><li>Ask questions, provide feedback.</li></ul></div>
-                </div>
-                 <p class="mt-10 text-lg text-gray-600">Visit: [University Accessibility Website Coming Soon?] <br/> Contact: [digital.accessibility@it.ox.ac.uk]</p>
-            </div>
-            
-            <div class="slide" data-title="Ask Ben 🤓" data-parent="Q&A">
-                 <h2 class="text-4xl font-bold text-slate-700">Ask Ben 🤓</h2><p class="mt-6 text-2xl text-gray-600">Thank you!</p>
-            </div>
-
-            <div class="slide" data-title="Ask Gemini ✨" data-parent="Q&A">
-                <h2 class="text-4xl font-bold text-slate-700 mb-4">Can't ask Ben? Ask Gemini! ✨</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mb-6">Have a question about accessibility? Ask our AI assistant, powered by Gemini, for a live explanation.</p>
-                <div class="w-full max-w-xl">
-                    <div class="flex gap-2">
-                        <input type="text" id="geminiQuery" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., What is ARIA?">
-                        <button id="askGeminiBtn" class="btn-action font-bold py-2 px-6 rounded-lg whitespace-nowrap">Ask Gemini</button>
-                    </div>
-                    <div id="geminiResponseContainer" class="mt-6 text-left bg-white p-6 rounded-lg shadow-inner min-h-[150px]">
-                        <div id="geminiLoader" class="hidden mx-auto loader"></div>
-                        <p id="geminiResponse" class="text-gray-700"></p>
-                    </div>
-                </div>
-            </div>
+             <a href="#" id="backToSlides" class="mt-6 text-blue-700 underline">← Back to Presentation</a>
         </div>
+    </div>
 
-        <div class="absolute bottom-0 left-0 right-0 flex justify-between p-4 bg-opacity-50 bg-gray-100">
-            <button id="prevBtn" class="btn-nav py-2 px-5 rounded-lg">Previous</button>
-            <div id="slide-counter" class="text-slate-700 self-center"></div>
-            <button id="nextBtn" class="btn-nav py-2 px-5 rounded-lg">Next</button>
-        </div>
-    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const slides = Array.from(document.querySelectorAll('#slide-container .slide'));
             const agendaContainer = document.getElementById('agenda');
+            const agendaItemsContainer = document.createElement('div');
+            agendaContainer.appendChild(agendaItemsContainer);
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
             const slideCounter = document.getElementById('slide-counter');
             let currentSlideIndex = 0;
             let effortChartInstance = null;
             let isArrowNavEnabled = true;
+
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const skipLink = document.querySelector('.skip-link');
+            const presentationWrapper = document.getElementById('presentation-wrapper');
+            const standaloneCopilot = document.getElementById('standalone-copilot');
+
+            function toggleMenu(show) {
+                const agenda = document.getElementById('agenda');
+                if (show) {
+                    agenda.classList.remove('-translate-x-full');
+                    menuOverlay.classList.remove('hidden');
+                    document.body.classList.add('menu-open');
+                } else {
+                    agenda.classList.add('-translate-x-full');
+                    menuOverlay.classList.add('hidden');
+                    document.body.classList.remove('menu-open');
+                }
+            }
+            
+            hamburgerBtn.addEventListener('click', () => toggleMenu(true));
+            closeMenuBtn.addEventListener('click', () => toggleMenu(false));
+            menuOverlay.addEventListener('click', () => toggleMenu(false));
+            
+            if(skipLink){
+                skipLink.addEventListener('click', () => {
+                     if (window.innerWidth < 1024) {
+                        toggleMenu(false);
+                    }
+                });
+            }
 
             function setupInteractiveCards() {
                 const mythCards = document.querySelectorAll('.myth-card');
@@ -400,7 +512,7 @@
             }
 
             function populateAgenda() {
-                agendaContainer.innerHTML = '<h2 class="text-lg font-bold mb-4">Agenda</h2>';
+                agendaItemsContainer.innerHTML = '';
                 const agendaGroups = {};
 
                 slides.forEach((slide, index) => {
@@ -429,7 +541,8 @@
                         const childList = document.createElement('ul');
                         childList.classList.add('agenda-child-list', 'mt-1');
                         
-                        titleDiv.addEventListener('click', () => {
+                        titleDiv.addEventListener('click', (e) => {
+                            e.stopPropagation();
                             childList.classList.toggle('expanded');
                         });
 
@@ -437,15 +550,27 @@
                             const childItem = document.createElement('li');
                             childItem.textContent = item.slide.dataset.title;
                             childItem.classList.add('agenda-item', 'agenda-child-item', 'p-2', 'rounded', 'cursor-pointer', 'hover:bg-slate-200', 'text-xs');
-                            childItem.addEventListener('click', () => showSlide(item.index));
+                            childItem.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                showSlide(item.index);
+                                if (window.innerWidth < 1024) {
+                                    toggleMenu(false);
+                                }
+                            });
                             childList.appendChild(childItem);
                         });
                         parentDiv.appendChild(childList);
                     } else {
-                        titleDiv.addEventListener('click', () => showSlide(items[0].index));
+                        titleDiv.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showSlide(items[0].index);
+                            if (window.innerWidth < 1024) {
+                                toggleMenu(false);
+                            }
+                        });
                         titleDiv.classList.add('agenda-item');
                     }
-                    agendaContainer.appendChild(parentDiv);
+                    agendaItemsContainer.appendChild(parentDiv);
                 }
             }
 
@@ -502,6 +627,25 @@
                 updateAgendaActiveState();
                 if (slides[index].querySelector('#effortChart')) {
                     renderEffortChart();
+                }
+                const activeSlideElement = slides[index];
+                 if(activeSlideElement.dataset.title === 'Thank You & Resources'){
+                    const copilotLink = document.getElementById('copilotLink');
+                    const qrCodeContainer = document.getElementById('qrCodeContainer');
+                    if (copilotLink && qrCodeContainer) {
+                        const url = new URL(window.location.href);
+                        url.hash = 'copilot';
+                        copilotLink.href = url.href;
+                        qrCodeContainer.innerHTML = '';
+                        new QRCode(qrCodeContainer, {
+                            text: url.href,
+                            width: 150,
+                            height: 150,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+                    }
                 }
             }
 
@@ -599,6 +743,25 @@
                 }
             }
 
+            function handleAppMode() {
+                const hash = window.location.hash;
+                if (hash === '#copilot') {
+                    presentationWrapper.style.display = 'none';
+                    document.body.classList.remove('flex');
+                    agendaContainer.style.display = 'none';
+                    standaloneCopilot.style.display = 'flex';
+                } else {
+                    presentationWrapper.style.display = 'block';
+                    document.body.classList.add('flex');
+                    agendaContainer.style.display = 'block';
+                    standaloneCopilot.style.display = 'none';
+                    showSlide(0);
+                }
+            }
+
+            window.addEventListener('hashchange', handleAppMode);
+
+
             prevBtn.addEventListener('click', () => showSlide(currentSlideIndex - 1));
             nextBtn.addEventListener('click', () => showSlide(currentSlideIndex + 1));
 
@@ -627,9 +790,22 @@
                 });
             }
 
+            const printBtn = document.getElementById('printBtn');
+            if(printBtn) {
+                printBtn.addEventListener('click', () => {
+                    window.print();
+                });
+            }
+
+            document.getElementById('backToSlides').addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.hash = '';
+                handleAppMode();
+            });
+
             populateAgenda();
             setupInteractiveCards();
-            showSlide(0);
+            handleAppMode();
 
             const askGeminiBtn = document.getElementById('askGeminiBtn');
             const geminiQueryInput = document.getElementById('geminiQuery');
