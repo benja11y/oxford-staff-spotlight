@@ -74,8 +74,8 @@
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
-            height: 300px;
-            max-height: 350px;
+            height: 350px; /* Increased height for legend */
+            max-height: 400px;
         }
         .myth-card {
             background-color: white;
@@ -338,7 +338,7 @@
                             <label for="reactiveCheckbox" class="ml-2 text-gray-700">Reactive Effort</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="proactiveCheckbox" class="h-5 w-5 rounded text-amber-600 focus:ring-amber-500" checked>
+                            <input type="checkbox" id="proactiveCheckbox" class="h-5 w-5 rounded text-amber-600 focus:ring-amber-500">
                             <label for="proactiveCheckbox" class="ml-2 text-gray-700">Proactive Effort</label>
                         </div>
                     </div>
@@ -670,7 +670,13 @@
                                 title: { display: true, text: 'Relative Effort / Cost' } 
                             } 
                         }, 
-                        plugins: { legend: { display: true }, tooltip: { enabled: true } } 
+                        plugins: { 
+                            legend: { 
+                                display: true,
+                                position: 'bottom'
+                            }, 
+                            tooltip: { enabled: true } 
+                        } 
                     }
                 });
                 
@@ -755,7 +761,17 @@
                     document.body.classList.add('flex');
                     agendaContainer.style.display = 'block';
                     standaloneCopilot.style.display = 'none';
-                    showSlide(0);
+                    const slideIndexMatch = hash.match(/^#slide-(\d+)$/);
+                    if (slideIndexMatch) {
+                        const slideIndex = parseInt(slideIndexMatch[1], 10);
+                        if (!isNaN(slideIndex) && slideIndex < slides.length) {
+                            showSlide(slideIndex);
+                        } else {
+                            showSlide(0);
+                        }
+                    } else {
+                        showSlide(0);
+                    }
                 }
             }
 
@@ -799,7 +815,9 @@
 
             document.getElementById('backToSlides').addEventListener('click', (e) => {
                 e.preventDefault();
-                window.location.hash = '';
+                const newUrl = new URL(window.location);
+                newUrl.hash = '';
+                window.history.pushState({}, '', newUrl);
                 handleAppMode();
             });
 
